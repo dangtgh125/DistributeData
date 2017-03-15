@@ -11,19 +11,20 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+
 public class ManagementFile {
 	private List <String> _listFile;
 	public InputStream	  _inputStream;
 	public OutputStream	  _outputStream;
 	public Distribute 	  _dis;
-	private boolean		  _flag;
 	
 	public ManagementFile() {
 		_listFile 	  = null;
 		_inputStream  = null;
 		_outputStream = null;
 		_dis 		  = null;
-		_flag		  = false;
 	}
 	
 	public String getFile(int seq) {
@@ -31,7 +32,7 @@ public class ManagementFile {
 	}
 	
 	public String[] splitString(String strLine){
-		String[] path = strLine.split(" /-,.?\\()[]");
+		String[] path = strLine.split("[- ,.]");
 		return path;
 	}
 	
@@ -52,52 +53,63 @@ public class ManagementFile {
 	public void processString(String strLine, int index){
 		String[] path = this.splitString(strLine);
 		int size = path.length;
+		int numName = this._dis._listNameVN.length;
 
 		for(int i = 0; i < size; i++){
 			//compare strings with array name vietnam
-			/*
-			 * for (vòng lặp duyệt array họ và tên)
-			 * 	if (nó là họ việt nam)
-			 * 		_numLetterOfFile[i]++;
-			 * 		_numLetterOfData++;
-			 */
+			for(int j = 0; j < numName; j++) {
+				if(path[i].equals(this._dis._listNameVN[j])){
+					this._dis._numLetterOfFile[index]++;
+					this._dis._numLetterOfData++;
+				}
+			}
 		}
 	}
 	
 	public void ReadFile() throws IOException {
 		
 		int size = this._listFile.size();
-		String temp = null;
+		String temp = null, path[];
 		InputStreamReader isr;
 		BufferedReader br;
 		
 		// Process with the line is read
 		for(int i = 0; i < size; i++) {
-			this._inputStream = new FileInputStream(this._listFile.get(i));
-		    isr = new InputStreamReader(this._inputStream, Charset.forName("UTF-8"));
-		    br = new BufferedReader(isr);
-		    while ((temp = br.readLine()) != null) {
-		        // Deal with the line by class Distribute
-		    	this.processString(temp, i);
-		    	
-		    	if(this._flag == true){
-		    		this._dis.computeProbability(i);
-		    	}
-		    }
-		    isr.close();
-		    br.close();
-			this._inputStream.close();
+			path = this.splitString(this._listFile.get(i));
+			if(path[path.length - 1].equals("doc") || path[path.length - 1].equals("docx")){
+				// process with word file
+				POIFSFileSystem fs = new POIFSFileSystem(new FileInputStream(this._listFile.get(i)));
+				HWPFDocument document = new HWPFDocument(fs);
+				
+			}
+			else {
+				// process with text file
+				this._inputStream = new FileInputStream(this._listFile.get(i));
+			    isr = new InputStreamReader(this._inputStream, Charset.forName("UTF-16"));
+			    br = new BufferedReader(isr);
+			    while ((temp = br.readLine()) != null) {
+			        // Deal with the line by class Distribute
+			    	this.processString(temp, i);
+			    }
+			    isr.close();
+			    br.close();
+				this._inputStream.close();
+			}
 		}
 	}
 	
 	public void processReadFile() throws IOException{
-		this._dis.memoryAllocation(this._listFile.size());
-		
-		// process with false flag to count number letters in the database
+		int size = this._listFile.size();
+		System.out.println(size);
+		this._dis = new Distribute();
+		this._dis.memoryAllocation(size);
 		this.ReadFile();
-		this._flag = true;
 		
-		// process with true flag to count number letters in the file
-		this.ReadFile();
+		for(int i = 0; i < size; i++){
+			this._dis.computeProbability(i);
+			System.out.println(this._dis._numLetterOfFile[i] + "\n");
+			System.out.println(this._dis._distribution[i] + "\n");
+			System.out.printf("%s: %.2f\n", this._listFile.get(i), this._dis._distribution[i]);
+		}
 	}
 }

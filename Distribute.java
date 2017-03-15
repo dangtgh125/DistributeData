@@ -4,6 +4,8 @@ public class Distribute {
 	public double _numLetterOfFile[];
 	public double _numLetterOfData;
 	public double _distribution[];
+	public String _listNameVN[] = {"Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ",
+									"Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương", "Lý"};
 	
 	public Distribute() {
 		_numLetterOfFile = null;
